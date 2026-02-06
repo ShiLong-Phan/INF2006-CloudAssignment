@@ -365,44 +365,6 @@ def get_degrees(university_name):
     
     return jsonify(degrees)
 
-@app.route('/analytics/degree_performance/<university_name>')
-def degree_performance(university_name):
-    """Get degree program performance within a university"""
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    
-    year = request.args.get('year', 2023)
-    degree = request.args.get('degree', '')
-    
-    query = """
-        SELECT 
-            d.name as degree_name,
-            s.name as school_name,
-            AVG(e.gross_monthly_mean) as avg_salary,
-            AVG(e.employment_rate_overall) as avg_employment_rate,
-            COUNT(*) as program_count
-        FROM employment_outcomes e
-        JOIN degrees d ON e.degree_id = d.degree_id
-        JOIN schools s ON d.school_id = s.school_id
-        JOIN universities u ON s.university_id = u.university_id
-        WHERE u.university_name = %s AND e.year = %s
-    """
-    
-    params = [university_name, year]
-    
-    # Add degree filter if specified
-    if degree:
-        query += " AND d.name = %s"
-        params.append(degree)
-    
-    query += " GROUP BY d.name, s.name ORDER BY avg_salary DESC"
-    
-    cursor.execute(query, params)
-    data = cursor.fetchall()
-    conn.close()
-    
-    return jsonify(decimal_to_float(data))
-
 @app.route('/analytics/debug/university-degrees')
 def debug_university_degrees():
     """Debug endpoint to see university-degree relationships"""
