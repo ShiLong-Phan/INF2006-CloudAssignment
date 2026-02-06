@@ -46,8 +46,7 @@ def descriptive_stats():
             AVG(e.employment_rate_overall) as avg_employment_rate,
             MIN(e.employment_rate_overall) as min_employment_rate,
             MAX(e.employment_rate_overall) as max_employment_rate,
-            STDDEV(e.employment_rate_overall) as employment_rate_std,
-            COUNT(*) as total_programs
+            STDDEV(e.employment_rate_overall) as employment_rate_std
         FROM employment_outcomes e
         JOIN degrees d ON e.degree_id = d.degree_id
         JOIN schools s ON d.school_id = s.school_id
@@ -184,28 +183,6 @@ def salary_trends():
     
     return jsonify(decimal_to_float(data))
 
-@app.route('/analytics/employment_trends')
-def employment_trends():
-    """Get employment rate trends over time"""
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    
-    query = """
-        SELECT 
-            e.year,
-            AVG(e.employment_rate_overall) as avg_employment_rate,
-            MIN(e.employment_rate_overall) as min_employment_rate,
-            MAX(e.employment_rate_overall) as max_employment_rate
-        FROM employment_outcomes e
-        GROUP BY e.year
-        ORDER BY e.year
-    """
-    
-    cursor.execute(query)
-    data = cursor.fetchall()
-    conn.close()
-    
-    return jsonify(decimal_to_float(data))
 
 # 4. COMPARATIVE ANALYSIS ENDPOINTS
 
@@ -344,14 +321,112 @@ def salary_projection(university_name):
 @app.route('/analytics/universities')
 def get_universities():
     """Get list of all universities"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT DISTINCT university_name FROM universities ORDER BY university_name")
+        universities = [row[0] for row in cursor.fetchall()]
+        print(f"Available universities: {universities}")
+        conn.close()
+        
+        return jsonify(universities)
+    except mysql.connector.Error as err:
+        print(f"Database error: {err}")
+        return jsonify({"error": "Database connection failed", "message": str(err)}), 500
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return jsonify({"error": "Unexpected error", "message": str(e)}), 500
+
+@app.route('/analytics/degrees/<university_name>')
+def get_degrees(university_name):
+    """Get list of degree programs for a specific university"""
     conn = get_db_connection()
     cursor = conn.cursor()
     
+    # First, let's check what universities exist
     cursor.execute("SELECT DISTINCT university_name FROM universities ORDER BY university_name")
-    universities = [row[0] for row in cursor.fetchall()]
+    all_universities = [row[0] for row in cursor.fetchall()]
+    print(f"Available universities: {all_universities}")
+    print(f"Requested university: '{university_name}'")
+    
+    query = """
+        SELECT DISTINCT d.name as degree_name 
+        FROM degrees d
+        JOIN schools s ON d.school_id = s.school_id
+        JOIN universities u ON s.university_id = u.university_id 
+        WHERE u.university_name = %s 
+        ORDER BY d.name
+    """
+    cursor.execute(query, (university_name,))
+    degrees = [row[0] for row in cursor.fetchall()]
+    print(f"Found {len(degrees)} degree programs for university '{university_name}': {degrees}")
     conn.close()
     
-    return jsonify(universities)
+    return jsonify(degrees)
+
+@app.route('/analytics/degree_performance/<university_name>')
+def degree_performance(university_name):
+    """Get degree program performance within a university"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    year = request.args.get('year', 2023)
+    degree = request.args.get('degree', '')
+    
+    query = """
+        SELECT 
+            d.name as degree_name,
+            s.name as school_name,
+            AVG(e.gross_monthly_mean) as avg_salary,
+            AVG(e.employment_rate_overall) as avg_employment_rate,
+            COUNT(*) as program_count
+        FROM employment_outcomes e
+        JOIN degrees d ON e.degree_id = d.degree_id
+        JOIN schools s ON d.school_id = s.school_id
+        JOIN universities u ON s.university_id = u.university_id
+        WHERE u.university_name = %s AND e.year = %s
+    """
+    
+    params = [university_name, year]
+    
+    # Add degree filter if specified
+    if degree:
+        query += " AND d.name = %s"
+        params.append(degree)
+    
+    query += " GROUP BY d.name, s.name ORDER BY avg_salary DESC"
+    
+    cursor.execute(query, params)
+    data = cursor.fetchall()
+    conn.close()
+    
+    return jsonify(decimal_to_float(data))
+
+@app.route('/analytics/debug/university-degrees')
+def debug_university_degrees():
+    """Debug endpoint to see university-degree relationships"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    query = """
+        SELECT 
+            u.university_id,
+            u.university_name,
+            s.school_id,
+            s.name as school_name,
+            d.degree_id,
+            d.name as degree_name
+        FROM universities u
+        LEFT JOIN schools s ON u.university_id = s.university_id
+        LEFT JOIN degrees d ON s.school_id = d.school_id
+        ORDER BY u.university_name, s.name, d.name
+    """
+    cursor.execute(query)
+    data = cursor.fetchall()
+    conn.close()
+    
+    return jsonify(data)
 
 @app.route('/analytics/years')
 def get_years():
@@ -365,5 +440,10 @@ def get_years():
     
     return jsonify(years)
 
+@app.route('/test')
+def test():
+    """Simple test endpoint that doesn't require database"""
+    return jsonify({"status": "Flask server is running!", "message": "Database endpoints may require MySQL to be running"})
+
 if __name__ == '__main__':
-    app.run(port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
