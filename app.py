@@ -3,17 +3,61 @@ from flask_cors import CORS
 import mysql.connector
 import statistics
 from decimal import Decimal
+import platform
+from mysql.connector import errorcode
+import subprocess
+import json
+
+# In-memory cache for credentials
+_CACHED_CREDS = None
 
 app = Flask(__name__)
 CORS(app) # This handles the "CORS" security requirement locally
 
-def get_db_connection():
-    return mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="", 
-        database="inf2006"
-    )
+def is_running_on_aws():
+    """Are we running on AWS? Check OS type."""
+    return False if platform.system() == "Windows" else True
+
+def fetch_aws_secret(secret_name="inf2006-db-secret"):
+    """Fetches secret via AWS CLI to avoid boto3 overhead."""
+    global _CACHED_CREDS
+    print("Fetching fresh credentials from AWS Secrets Manager...")
+    try:
+        cmd = ["aws", "secretsmanager", "get-secret-value", "--secret-id", secret_name, "--query", "SecretString", "--output", "text"]
+        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode('utf-8')
+        _CACHED_CREDS = json.loads(output)
+        return _CACHED_CREDS
+    except Exception as e:
+        print(f"Error fetching secret: {e}")
+        return None
+
+def get_db_connection(retry=True):
+    global _CACHED_CREDS
+    
+    # 1. Local Development Fallback
+    if not is_running_on_aws():
+        return mysql.connector.connect(host="localhost", user="root", password="", database="inf2006")
+
+    # 2. AWS Logic: Use cache or fetch if empty
+    if _CACHED_CREDS is None:
+        fetch_aws_secret()
+
+    try:
+        return mysql.connector.connect(
+            host=_CACHED_CREDS.get('host'),
+            user=_CACHED_CREDS.get('username', 'admin'),
+            password=_CACHED_CREDS.get('password'),
+            database="inf2006",
+            connect_timeout=5
+        )
+    except mysql.connector.Error as err:
+        # 3. Handle Auth Failure - password might have been rotated
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR and retry:
+            print("Auth failed. Local cache might be stale. Forcing refresh...")
+            fetch_aws_secret()
+            return get_db_connection(retry=False) # Retry once with new creds
+        else:
+            raise err
 
 def decimal_to_float(obj):
     """Convert Decimal objects to float for JSON serialization"""
