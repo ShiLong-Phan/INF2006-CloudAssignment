@@ -9,6 +9,25 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
+    <style>
+        .placeholder {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            min-height: 260px;
+            color: #718096;
+            text-align: center;
+            font-size: 0.95rem;
+            padding: 16px;
+        }
+        .placeholder i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            opacity: 0.6;
+        }
+    </style>
 </head>
 <body>
     <div class="dashboard">
@@ -141,6 +160,57 @@
     </div>
     
     <script>
+    function showPlaceholder(canvasId, message, iconClass = 'fas fa-filter') {
+        if (charts[canvasId]) {
+            charts[canvasId].destroy();
+            delete charts[canvasId];
+        }
+
+        const canvas = document.getElementById(canvasId);
+        const wrap = canvas ? canvas.parentElement : null;
+
+        if (!wrap) {
+            const fallback = document.querySelector(`[id="${canvasId}"]`);
+            if (fallback && fallback.parentElement) {
+            fallback.parentElement.innerHTML = `
+                <div class="placeholder">
+                <i class="${iconClass}"></i>
+                <p>${message}</p>
+                </div>
+            `;
+            }
+            return;
+        }
+
+        wrap.innerHTML = `
+            <div class="placeholder">
+            <i class="${iconClass}"></i>
+            <p>${message}</p>
+            </div>
+        `;
+        }
+
+        function restoreCanvas(canvasId) {
+            if (document.getElementById(canvasId)) return;
+
+            const candidates = document.querySelectorAll('.chart-canvas');
+            for (const wrap of candidates) {
+                if (wrap.querySelector('.placeholder')) {
+                const container = wrap.closest('.comparison-container, .chart-container');
+                if (!container) continue;
+
+                const hasTarget =
+                    (canvasId === 'yearComparisonChart' && container.textContent.includes('Year-over-Year')) ||
+                    (canvasId === 'projectionChart' && container.textContent.includes('Salary Projections'));
+
+                    if (hasTarget) {
+                        wrap.innerHTML = `<canvas id="${canvasId}"></canvas>`;
+                        return;
+                    }
+                }
+            }
+        }
+
         //Global variables
         let charts = {};
         let currentData = {};
@@ -268,6 +338,8 @@
             await loadSalaryTrends();
             await loadSalaryDistribution();
             await loadTopPrograms();
+            await loadComparativeAnalysis()
+            showPlaceholder('projectionChart', 'Select a university and click "Generate Projections"', 'fas fa-university');
         }
         
         // Load descriptive statistics
@@ -627,14 +699,20 @@
         // Load salary projections for selected university
         async function loadSalaryProjections() {
             const university = document.getElementById('comparisonUniversity').value;
+            const degree = document.getElementById('comparisonDegree').value;
+
             if (!university) {
-                alert('Please select a university for projections');
+                showPlaceholder('projectionChart', 'Select a university to generate salary projections', 'fas fa-university');
                 return;
             }
+
+            restoreCanvas('projectionChart');
+
+            let url = `${API_BASE}/salary_projection/${encodeURIComponent(university)}`;
+            if (degree) url += `?degree=${encodeURIComponent(degree)}`;
             
             try {
-                const data = await fetch(`${API_BASE}/salary_projection/${encodeURIComponent(university)}`).then(r => r.json());
-                
+                const data = await fetch(url).then(r => r.json());
                 const ctx = document.getElementById('projectionChart').getContext('2d');
                 
                 if (charts.projection) charts.projection.destroy();
@@ -688,20 +766,28 @@
                             plugins: {
                                 title: {
                                     display: true,
-                                    text: `${university} - Salary Trend & Projections`
+                                    text: [`${university} - Salary Trend & Projections`,
+                                        `${degree ? degree : 'All Degree Programs'}`
+                                    ]
                                 }
                             }
                         }
                     });
                 } else {
-                    document.getElementById('projectionChart').parentElement.innerHTML = 
-                        '<div class="loading">Insufficient data for salary projections.</div>';
+                   showPlaceholder(
+                    'projectionChart',
+                    'Insufficient data for salary projections.',
+                    'fas fa-exclamation-triangle'
+                    );
                 }
                 
             } catch (error) {
                 console.error('Error loading salary projections:', error);
-                document.getElementById('projectionChart').parentElement.innerHTML = 
-                    '<div class="error">Error loading projection data.</div>';
+                    showPlaceholder(
+                    'projectionChart',
+                    'Error loading projection data.',
+                    'fas fa-exclamation-circle'
+                    );
             }
         }
         
@@ -734,6 +820,7 @@
         
         document.getElementById('comparisonYear1').addEventListener('change', loadComparativeAnalysis);
         document.getElementById('comparisonYear2').addEventListener('change', loadComparativeAnalysis);
+        document.getElementById('comparisonDegree').addEventListener('change', loadSalaryProjections);
     </script>
 </body>
 </html>

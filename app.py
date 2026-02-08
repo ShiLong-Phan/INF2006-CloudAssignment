@@ -305,10 +305,12 @@ def top_performing_programs():
 
 @app.route('/analytics/salary_projection/<university_name>')
 def salary_projection(university_name):
-    """Simple linear trend projection for salary"""
+    """Simple linear trend projection for salary (optionally filtered by degree)"""
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    
+
+    degree = request.args.get('degree', '').strip()
+
     query = """
         SELECT 
             e.year,
@@ -318,30 +320,41 @@ def salary_projection(university_name):
         JOIN schools s ON d.school_id = s.school_id
         JOIN universities u ON s.university_id = u.university_id
         WHERE u.university_name = %s
+    """
+    params = [university_name]
+
+    # Optional degree filter
+    if degree:
+        query += " AND d.name = %s"
+        params.append(degree)
+
+    query += """
         GROUP BY e.year
         ORDER BY e.year
     """
-    
-    cursor.execute(query, (university_name,))
+
+    cursor.execute(query, params)
     data = cursor.fetchall()
     conn.close()
-    
+
     # Simple linear regression for projection
     if len(data) >= 2:
         years = [row['year'] for row in data]
         salaries = [float(row['avg_salary']) for row in data]
-        
-        # Calculate linear trend
+
         n = len(years)
         sum_x = sum(years)
         sum_y = sum(salaries)
         sum_xy = sum(x * y for x, y in zip(years, salaries))
         sum_x2 = sum(x * x for x in years)
-        
-        slope = (n * sum_xy - sum_x * sum_y) / (n * sum_x2 - sum_x * sum_x)
+
+        denom = (n * sum_x2 - sum_x * sum_x)
+        if denom == 0:
+            return jsonify({'historical_data': decimal_to_float(data), 'projections': []})
+
+        slope = (n * sum_xy - sum_x * sum_y) / denom
         intercept = (sum_y - slope * sum_x) / n
-        
-        # Project next 2 years
+
         last_year = max(years)
         projections = []
         for i in range(1, 3):
@@ -351,14 +364,16 @@ def salary_projection(university_name):
                 'year': proj_year,
                 'projected_salary': round(proj_salary, 2)
             })
-        
+
         return jsonify({
             'historical_data': decimal_to_float(data),
             'projections': projections,
-            'trend_slope': round(slope, 2)
+            'trend_slope': round(slope, 2),
+            'filtered_degree': degree or None
         })
-    
-    return jsonify({'historical_data': decimal_to_float(data), 'projections': []})
+
+    return jsonify({'historical_data': decimal_to_float(data), 'projections': [], 'filtered_degree': degree or None})
+
 
 # 6. UTILITY ENDPOINTS
 
