@@ -1,13 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Employment & Salary Analytics Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
     <style>
         .placeholder {
@@ -22,6 +25,7 @@
             font-size: 0.95rem;
             padding: 16px;
         }
+
         .placeholder i {
             font-size: 2rem;
             margin-bottom: 10px;
@@ -29,10 +33,11 @@
         }
     </style>
 </head>
+
 <body>
     <div class="dashboard">
         <h1><i class="fas fa-chart-line"></i> Employment & Salary Analytics Dashboard</h1>
-        
+
         <!-- Controls Panel -->
         <div class="controls-panel">
             <div class="control-group">
@@ -40,7 +45,7 @@
                     <label for="yearSelect"><i class="fas fa-calendar"></i> Analysis Year</label>
                     <select id="yearSelect"></select>
                 </div>
-                
+
                 <div class="control-item">
                     <label for="universitySelect"><i class="fas fa-university"></i> University Filter</label>
                     <select id="universitySelect">
@@ -48,7 +53,7 @@
                     </select>
                 </div>
             </div>
-            
+
             <div class="control-group">
                 <button onclick="refreshAllCharts()">
                     <i class="fas fa-sync-alt"></i> Refresh All Charts
@@ -58,12 +63,12 @@
                 </button>
             </div>
         </div>
-        
+
         <!-- Statistics Cards -->
         <div class="stats-grid" id="statsGrid">
             <!-- Stats will be populated here -->
         </div>
-        
+
         <!-- Charts Grid -->
         <div class="charts-grid">
             <!-- Descriptive Statistics Chart -->
@@ -73,7 +78,7 @@
                     <canvas id="salaryDistChart"></canvas>
                 </div>
             </div>
-            
+
             <!-- University Comparison Chart -->
             <div class="chart-container">
                 <h3 class="chart-title"><i class="fas fa-university"></i> University Performance Comparison</h3>
@@ -82,7 +87,15 @@
                 </div>
             </div>
         </div>
-        
+
+        <!-- Full-Width Time Series Analysis -->
+        <div class="chart-container">
+            <h3 class="chart-title"><i class="fas fa-chart-line"></i> Top Performing Programs</h3>
+            <div class="chart-canvas">
+                <canvas id="topProgramsChart"></canvas>
+            </div>
+        </div>
+
         <!-- Full-Width Time Series Analysis -->
         <div class="chart-container">
             <h3 class="chart-title"><i class="fas fa-chart-line"></i> Salary Trends Over Time</h3>
@@ -90,7 +103,7 @@
                 <canvas id="salaryTrendChart"></canvas>
             </div>
         </div>
-        
+
         <!-- Comparative Analysis Section -->
         <div class="controls-panel">
             <h2 style="color: #1a202c; margin-bottom: 20px; text-align: center;">
@@ -103,25 +116,25 @@
                         <option value="">Select University</option>
                     </select>
                 </div>
-                
+
                 <div class="control-item">
                     <label for="comparisonDegree"><i class="fas fa-graduation-cap"></i> Degree Program Filter</label>
                     <select id="comparisonDegree">
                         <option value="">All Degree Programs</option>
                     </select>
                 </div>
-                
+
                 <div class="control-item">
                     <label for="comparisonYear1"><i class="fas fa-balance-scale"></i> Compare Year 1</label>
                     <select id="comparisonYear1"></select>
                 </div>
-                
+
                 <div class="control-item">
                     <label for="comparisonYear2">Compare Year 2</label>
                     <select id="comparisonYear2"></select>
                 </div>
             </div>
-            
+
             <div class="control-group">
                 <button onclick="loadComparativeAnalysis()">
                     <i class="fas fa-chart-bar"></i> Run Comparison
@@ -131,23 +144,18 @@
                 </button>
             </div>
         </div>
-        
-        <div class="comparison-grid">
-            <div class="comparison-container">
-                <h3 class="chart-title"><i class="fas fa-trophy"></i> Top Performing Programs</h3>
-                <div class="chart-canvas">
-                    <canvas id="topProgramsChart"></canvas>
-                </div>
-            </div>
-            
-            <div class="comparison-container">
-                <h3 class="chart-title"><i class="fas fa-chart-area"></i> Year-over-Year Comparison</h3>
+
+
+        <!-- Advanced Analysis Section -->
+        <div class="charts-row">
+            <div class="chart-container full-width">
+                <h3 class="chart-title"><i class="fas fa-crystal-ball"></i> Year-over-Year Comparison</h3>
                 <div class="chart-canvas">
                     <canvas id="yearComparisonChart"></canvas>
                 </div>
             </div>
         </div>
-        
+
         <!-- Advanced Analysis Section -->
         <div class="charts-row">
             <div class="chart-container full-width">
@@ -158,31 +166,31 @@
             </div>
         </div>
     </div>
-    
+
     <script>
-    function showPlaceholder(canvasId, message, iconClass = 'fas fa-filter') {
-        if (charts[canvasId]) {
-            charts[canvasId].destroy();
-            delete charts[canvasId];
-        }
+        function showPlaceholder(canvasId, message, iconClass = 'fas fa-filter') {
+            if (charts[canvasId]) {
+                charts[canvasId].destroy();
+                delete charts[canvasId];
+            }
 
-        const canvas = document.getElementById(canvasId);
-        const wrap = canvas ? canvas.parentElement : null;
+            const canvas = document.getElementById(canvasId);
+            const wrap = canvas ? canvas.parentElement : null;
 
-        if (!wrap) {
-            const fallback = document.querySelector(`[id="${canvasId}"]`);
-            if (fallback && fallback.parentElement) {
-            fallback.parentElement.innerHTML = `
+            if (!wrap) {
+                const fallback = document.querySelector(`[id="${canvasId}"]`);
+                if (fallback && fallback.parentElement) {
+                    fallback.parentElement.innerHTML = `
                 <div class="placeholder">
                 <i class="${iconClass}"></i>
                 <p>${message}</p>
                 </div>
             `;
+                }
+                return;
             }
-            return;
-        }
 
-        wrap.innerHTML = `
+            wrap.innerHTML = `
             <div class="placeholder">
             <i class="${iconClass}"></i>
             <p>${message}</p>
@@ -196,12 +204,12 @@
             const candidates = document.querySelectorAll('.chart-canvas');
             for (const wrap of candidates) {
                 if (wrap.querySelector('.placeholder')) {
-                const container = wrap.closest('.comparison-container, .chart-container');
-                if (!container) continue;
+                    const container = wrap.closest('.comparison-container, .chart-container');
+                    if (!container) continue;
 
-                const hasTarget =
-                    (canvasId === 'yearComparisonChart' && container.textContent.includes('Year-over-Year')) ||
-                    (canvasId === 'projectionChart' && container.textContent.includes('Salary Projections'));
+                    const hasTarget =
+                        (canvasId === 'yearComparisonChart' && container.textContent.includes('Year-over-Year')) ||
+                        (canvasId === 'projectionChart' && container.textContent.includes('Salary Projections'));
 
                     if (hasTarget) {
                         wrap.innerHTML = `<canvas id="${canvasId}"></canvas>`;
@@ -217,20 +225,20 @@
         const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
             ? 'http://localhost:5000/analytics'
             : '/analytics';
-        
+
         // Initialize dashboard
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             initializeControls();
             loadInitialData();
         });
-        
+
         // Initialize control elements
         async function initializeControls() {
             try {
                 // Load years
                 const years = await fetch(`${API_BASE}/years`).then(r => r.json());
                 const yearSelects = ['yearSelect', 'comparisonYear1', 'comparisonYear2'];
-                
+
                 yearSelects.forEach(selectId => {
                     const select = document.getElementById(selectId);
                     select.innerHTML = '';
@@ -240,7 +248,7 @@
                         option.textContent = year;
                         select.appendChild(option);
                     });
-                    
+
                     // Set default values
                     if (selectId === 'yearSelect') {
                         select.value = years[years.length - 1]; // Latest year
@@ -250,10 +258,10 @@
                         select.value = years[years.length - 1];
                     }
                 });
-                
+
                 // Load universities
                 const universities = await fetch(`${API_BASE}/universities`).then(r => r.json());
-                
+
                 // Populate main university filter
                 const universitySelect = document.getElementById('universitySelect');
                 universities.forEach(uni => {
@@ -262,7 +270,7 @@
                     option.textContent = uni;
                     universitySelect.appendChild(option);
                 });
-                
+
                 // Populate comparison university filter
                 const comparisonUniversitySelect = document.getElementById('comparisonUniversity');
                 universities.forEach(uni => {
@@ -271,38 +279,38 @@
                     option.textContent = uni;
                     comparisonUniversitySelect.appendChild(option);
                 });
-                
+
                 // Add event listener for comparison university to load degree programs
                 comparisonUniversitySelect.addEventListener('change', loadDegreesForUniversity);
-                
+
             } catch (error) {
                 console.error('Error initializing controls:', error);
             }
         }
-        
+
         // Load degree programs for selected university
         async function loadDegreesForUniversity() {
             const university = document.getElementById('comparisonUniversity').value;
             const degreeSelect = document.getElementById('comparisonDegree');
-            
+
             console.log('Loading degree programs for university:', university);
-            
+
             // Clear existing options
             degreeSelect.innerHTML = '<option value="">All Degree Programs</option>';
-            
+
             if (university) {
                 try {
                     const url = `${API_BASE}/degrees/${encodeURIComponent(university)}`;
                     console.log('Fetching degrees from:', url);
-                    
+
                     const response = await fetch(url);
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
-                    
+
                     const degrees = await response.json();
                     console.log('Received degree programs:', degrees);
-                    
+
                     if (degrees && degrees.length > 0) {
                         degrees.forEach(degree => {
                             const option = document.createElement('option');
@@ -329,8 +337,8 @@
                 }
             }
         }
-                
-        
+
+
         // Load initial data
         async function loadInitialData() {
             await loadDescriptiveStats();
@@ -341,23 +349,23 @@
             await loadComparativeAnalysis()
             showPlaceholder('projectionChart', 'Select a university and click "Generate Projections"', 'fas fa-university');
         }
-        
+
         // Load descriptive statistics
         async function loadDescriptiveStats() {
             try {
                 const year = document.getElementById('yearSelect').value;
                 const university = document.getElementById('universitySelect').value;
-                
+
                 let url = `${API_BASE}/descriptive_stats?year=${year}`;
                 if (university) {
                     url += `&university=${encodeURIComponent(university)}`;
                 }
-                
+
                 const stats = await fetch(url).then(r => r.json());
-                
+
                 // Create subtitle for filtering context
                 const filterText = university ? ` (${university} - ${year})` : ` (All Universities - ${year})`;
-                
+
                 const statsHtml = `
                     <div class="stat-card">
                         <div class="stat-icon"><i class="fas fa-dollar-sign"></i></div>
@@ -377,24 +385,24 @@
                         <div class="stat-label">Highest Salary${filterText}</div>
                     </div>
                 `;
-                
+
                 document.getElementById('statsGrid').innerHTML = statsHtml;
-                
+
             } catch (error) {
                 console.error('Error loading descriptive stats:', error);
             }
         }
-        
+
         // Load salary distribution
         async function loadSalaryDistribution() {
             try {
                 const year = document.getElementById('yearSelect').value;
                 const data = await fetch(`${API_BASE}/salary_distribution/${year}`).then(r => r.json());
-                
+
                 const ctx = document.getElementById('salaryDistChart').getContext('2d');
-                
+
                 if (charts.salaryDist) charts.salaryDist.destroy();
-                
+
                 charts.salaryDist = new Chart(ctx, {
                     type: 'doughnut',
                     data: {
@@ -402,7 +410,7 @@
                         datasets: [{
                             data: data.map(d => d.count),
                             backgroundColor: [
-                                '#FF6B6B', '#4ECDC4', '#45B7D1', 
+                                '#FF6B6B', '#4ECDC4', '#45B7D1',
                                 '#96CEB4', '#FFEAA7', '#DDA0DD'
                             ],
                             borderWidth: 0
@@ -422,22 +430,22 @@
                         }
                     }
                 });
-                
+
             } catch (error) {
                 console.error('Error loading salary distribution:', error);
             }
         }
-        
+
         // Load university comparison
         async function loadUniversityComparison() {
             try {
                 const year = document.getElementById('yearSelect').value;
                 const data = await fetch(`${API_BASE}/university_comparison?year=${year}`).then(r => r.json());
-                
+
                 const ctx = document.getElementById('universityChart').getContext('2d');
-                
+
                 if (charts.university) charts.university.destroy();
-                
+
                 charts.university = new Chart(ctx, {
                     type: 'bar',
                     data: {
@@ -478,17 +486,17 @@
                         }
                     }
                 });
-                
+
             } catch (error) {
                 console.error('Error loading university comparison:', error);
             }
         }
-        
+
         // Load salary trends
         async function loadSalaryTrends() {
             try {
                 const data = await fetch(`${API_BASE}/salary_trends`).then(r => r.json());
-                
+
                 // Group data by university
                 const groupedData = {};
                 data.forEach(item => {
@@ -500,11 +508,11 @@
                         y: item.avg_salary
                     });
                 });
-                
+
                 const ctx = document.getElementById('salaryTrendChart').getContext('2d');
-                
+
                 if (charts.salaryTrend) charts.salaryTrend.destroy();
-                
+
                 const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD'];
                 const datasets = Object.keys(groupedData).map((university, index) => ({
                     label: university,
@@ -515,7 +523,7 @@
                     fill: false,
                     tension: 0.4
                 }));
-                
+
                 charts.salaryTrend = new Chart(ctx, {
                     type: 'line',
                     data: { datasets },
@@ -533,54 +541,54 @@
                         }
                     }
                 });
-                
+
             } catch (error) {
                 console.error('Error loading salary trends:', error);
             }
         }
-        
+
         // Load employment trends
-        
+
         // Load top performing programs
         async function loadTopPrograms() {
             try {
                 const year = document.getElementById('yearSelect').value;
                 const university = document.getElementById('universitySelect').value;
                 console.log('Loading top programs for year:', year, 'university:', university);
-                
+
                 let url = `${API_BASE}/top_performing_programs?year=${year}&limit=8`;
                 if (university) {
                     url += `&university=${encodeURIComponent(university)}`;
                 }
-                
+
                 const response = await fetch(url);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                
+
                 const data = await response.json();
                 console.log('Top programs data:', data);
-                
+
                 if (!data || data.length === 0) {
                     console.warn('No data returned for top programs');
                     // Update chart title to show no data
-                    const container = document.getElementById('topProgramsChart').closest('.comparison-container');
+                    const container = document.getElementById('topProgramsChart').closest('.chart-container');
                     const titleElement = container.querySelector('.chart-title');
                     const universityText = university ? ` - ${university}` : '';
                     titleElement.innerHTML = `<i class="fas fa-trophy"></i> Top Performing Programs${universityText} <span style="color: #718096; font-size: 0.8em;">(No data available)</span>`;
                     return;
                 }
-                
+
                 // Update chart title
-                const container = document.getElementById('topProgramsChart').closest('.comparison-container');
+                const container = document.getElementById('topProgramsChart').closest('.chart-container');
                 const titleElement = container.querySelector('.chart-title');
                 const universityText = university ? ` - ${university}` : '';
                 titleElement.innerHTML = `<i class="fas fa-trophy"></i> Top Performing Programs${universityText}`;
-                
+
                 const ctx = document.getElementById('topProgramsChart').getContext('2d');
-                
+
                 if (charts.topPrograms) charts.topPrograms.destroy();
-                
+
                 charts.topPrograms = new Chart(ctx, {
                     type: 'bar',
                     data: {
@@ -600,10 +608,10 @@
                         plugins: {
                             tooltip: {
                                 callbacks: {
-                                    title: function(context) {
+                                    title: function (context) {
                                         return data[context[0].dataIndex].university_name;
                                     },
-                                    label: function(context) {
+                                    label: function (context) {
                                         const item = data[context.dataIndex];
                                         return [
                                             `Program: ${item.degree_name}`,
@@ -626,28 +634,28 @@
                         }
                     }
                 });
-                
+
                 console.log('Top programs chart created successfully');
-                
+
             } catch (error) {
                 console.error('Error loading top programs:', error);
-                document.getElementById('topProgramsChart').parentElement.innerHTML = 
+                document.getElementById('topProgramsChart').parentElement.innerHTML =
                     '<div class="error">Error loading top programs data. Please check the console for details.</div>';
             }
         }
-        
+
         // Load comparative analysis
         async function loadComparativeAnalysis() {
             try {
                 const year1 = document.getElementById('comparisonYear1').value;
                 const year2 = document.getElementById('comparisonYear2').value;
-                
+
                 const data = await fetch(`${API_BASE}/year_comparison/${year1}/${year2}`).then(r => r.json());
-                
+
                 const ctx = document.getElementById('yearComparisonChart').getContext('2d');
-                
+
                 if (charts.yearComparison) charts.yearComparison.destroy();
-                
+
                 charts.yearComparison = new Chart(ctx, {
                     type: 'scatter',
                     data: {
@@ -675,7 +683,7 @@
                         plugins: {
                             tooltip: {
                                 callbacks: {
-                                    label: function(context) {
+                                    label: function (context) {
                                         const point = context.parsed;
                                         const change = ((point.y - point.x) / point.x * 100).toFixed(1);
                                         return [
@@ -690,12 +698,12 @@
                         }
                     }
                 });
-                
+
             } catch (error) {
                 console.error('Error loading comparative analysis:', error);
             }
         }
-        
+
         // Load salary projections for selected university
         async function loadSalaryProjections() {
             const university = document.getElementById('comparisonUniversity').value;
@@ -710,24 +718,24 @@
 
             let url = `${API_BASE}/salary_projection/${encodeURIComponent(university)}`;
             if (degree) url += `?degree=${encodeURIComponent(degree)}`;
-            
+
             try {
                 const data = await fetch(url).then(r => r.json());
                 const ctx = document.getElementById('projectionChart').getContext('2d');
-                
+
                 if (charts.projection) charts.projection.destroy();
-                
+
                 if (data.projections && data.projections.length > 0) {
                     const historicalData = data.historical_data.map(d => ({
                         x: d.year,
                         y: d.avg_salary
                     }));
-                    
+
                     const projectionData = data.projections.map(d => ({
                         x: d.year,
                         y: d.projected_salary
                     }));
-                    
+
                     charts.projection = new Chart(ctx, {
                         type: 'line',
                         data: {
@@ -767,36 +775,36 @@
                                 title: {
                                     display: true,
                                     text: [`${university} - Salary Trend & Projections`,
-                                        `${degree ? degree : 'All Degree Programs'}`
+                                    `${degree ? degree : 'All Degree Programs'}`
                                     ]
                                 }
                             }
                         }
                     });
                 } else {
-                   showPlaceholder(
-                    'projectionChart',
-                    'Insufficient data for salary projections.',
-                    'fas fa-exclamation-triangle'
+                    showPlaceholder(
+                        'projectionChart',
+                        'Insufficient data for salary projections.',
+                        'fas fa-exclamation-triangle'
                     );
                 }
-                
+
             } catch (error) {
                 console.error('Error loading salary projections:', error);
-                    showPlaceholder(
+                showPlaceholder(
                     'projectionChart',
                     'Error loading projection data.',
                     'fas fa-exclamation-circle'
-                    );
+                );
             }
         }
-        
+
         // Load degree performance analysis
-        
+
         // Refresh all charts
         function refreshAllCharts() {
             loadInitialData();
-            
+
             // Only load comparative analysis if comparison years are selected
             const year1 = document.getElementById('comparisonYear1').value;
             const year2 = document.getElementById('comparisonYear2').value;
@@ -804,23 +812,24 @@
                 loadComparativeAnalysis();
             }
         }
-        
+
         // Event listeners
-        document.getElementById('yearSelect').addEventListener('change', function() {
+        document.getElementById('yearSelect').addEventListener('change', function () {
             loadDescriptiveStats();
             loadUniversityComparison();
             loadSalaryDistribution();
             loadTopPrograms();
         });
-        
-        document.getElementById('universitySelect').addEventListener('change', function() {
+
+        document.getElementById('universitySelect').addEventListener('change', function () {
             loadTopPrograms();
             loadDescriptiveStats();
         });
-        
+
         document.getElementById('comparisonYear1').addEventListener('change', loadComparativeAnalysis);
         document.getElementById('comparisonYear2').addEventListener('change', loadComparativeAnalysis);
         document.getElementById('comparisonDegree').addEventListener('change', loadSalaryProjections);
     </script>
 </body>
+
 </html>
